@@ -30,14 +30,26 @@ import argparse
 import os
 import glob
 import time
+import urllib.request
 import numpy as np
 import cv2
 import mediapipe as mp
+from mediapipe.tasks import python as mp_tasks
+from mediapipe.tasks.python import vision as mp_vision
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 import skl2onnx
 from skl2onnx.common.data_types import FloatTensorType
+
+LANDMARKER_MODEL = os.path.join(os.path.dirname(__file__), 'hand_landmarker.task')
+LANDMARKER_URL   = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task'
+
+def _ensure_model():
+    if not os.path.exists(LANDMARKER_MODEL):
+        print('  Downloading MediaPipe hand landmarker model (~8 MB)...')
+        urllib.request.urlretrieve(LANDMARKER_URL, LANDMARKER_MODEL)
+        print(f'  Saved: {LANDMARKER_MODEL}')
 
 
 # ── Label order MUST match ASL_LABELS in SignForge index.html ─────────────────
@@ -64,27 +76,30 @@ def normalize_landmarks(landmarks):
     return pts.flatten()
 
 
-def extract_features(hands, image_path):
-    """Run MediaPipe on one image and return normalized landmarks, or None."""
+def extract_features(detector, image_path):
+    """Run MediaPipe Tasks HandLandmarker on one image and return normalized landmarks, or None."""
     img = cv2.imread(image_path)
     if img is None:
         return None
     rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    result = hands.process(rgb)
-    if result.multi_hand_landmarks:
-        return normalize_landmarks(result.multi_hand_landmarks[0].landmark)
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+    result = detector.detect(mp_image)
+    if result.hand_landmarks:
+        return normalize_landmarks(result.hand_landmarks[0])
     return None
 
 
 # ── Training pipeline ─────────────────────────────────────────────────────────
 
 def collect_features(data_dir, max_per_class):
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands(
-        static_image_mode=True,
-        max_num_hands=1,
-        min_detection_confidence=0.3,
+    _ensure_model()
+    options = mp_vision.HandLandmarkerOptions(
+        base_options=mp_tasks.BaseOptions(model_asset_path=LANDMARKER_MODEL),
+        num_hands=1,
+        min_hand_detection_confidence=0.3,
+        running_mode=mp_vision.RunningMode.IMAGE,
     )
+    detector = mp_vision.HandLandmarker.create_from_options(options)
 
     features, labels = [], []
     total_ok = total_fail = 0
@@ -106,7 +121,7 @@ def collect_features(data_dir, max_per_class):
 
         ok = fail = 0
         for img_path in image_files:
-            feat = extract_features(hands, img_path)
+            feat = extract_features(detector, img_path)
             if feat is not None:
                 features.append(feat)
                 labels.append(label_idx)
@@ -119,7 +134,7 @@ def collect_features(data_dir, max_per_class):
         bar = '█' * (ok // 20)
         print(f'  {label:8s}  {ok:4d} ok  {fail:3d} no-hand  {bar}')
 
-    hands.close()
+    detector.close()
     print(f'\n  Total: {total_ok} samples extracted  ({total_fail} images had no detectable hand)')
     return np.array(features, dtype=np.float32), np.array(labels, dtype=np.int64)
 
