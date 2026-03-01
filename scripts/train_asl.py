@@ -193,6 +193,7 @@ def train_and_export(data_dir, max_per_class, output_path):
         clf,
         initial_types=initial_type,
         options={id(clf): {'zipmap': False}},  # get flat float array, not dict
+        target_opset=17,  # onnxruntime-web 1.17.3 supports up to opset 18
     )
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
