@@ -68,12 +68,12 @@ def normalize_landmarks(landmarks):
     Translate wrist to origin, scale by max absolute value.
     Returns float32 array of shape (42,) — matches collect_data.py exactly.
     """
-    pts = np.array([[lm.x, lm.y] for lm in landmarks], dtype=np.float32)
-    pts -= pts[0]                       # wrist at (0, 0)
+    pts = np.array([[lm.x, lm.y, lm.z] for lm in landmarks], dtype=np.float32)
+    pts -= pts[0]                       # wrist at (0, 0, 0)
     max_abs = np.abs(pts).max()
     if max_abs > 0:
         pts /= max_abs                  # scale to [-1, 1]
-    return pts.flatten()
+    return pts.flatten()               # shape (63,)
 
 
 def extract_features(detector, image_path):
@@ -166,7 +166,7 @@ def train_and_export(data_dir, max_per_class, output_path):
     print(f'  Train: {len(X_train)}  Test: {len(X_test)}\n')
 
     clf = MLPClassifier(
-        hidden_layer_sizes=(256, 128, 64),
+        hidden_layer_sizes=(512, 256, 128, 64),
         activation='relu',
         solver='adam',
         max_iter=500,
@@ -188,7 +188,7 @@ def train_and_export(data_dir, max_per_class, output_path):
 
     # ── Step 3: Export to ONNX ─────────────────────────────────────────────
     print('STEP 3 / 3 — Exporting to ONNX...')
-    initial_type = [('float_input', FloatTensorType([None, 42]))]
+    initial_type = [('float_input', FloatTensorType([None, 63]))]
     onx = skl2onnx.convert_sklearn(
         clf,
         initial_types=initial_type,
