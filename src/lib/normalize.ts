@@ -5,14 +5,14 @@ import type { Landmark } from '../types'
  *
  * Steps:
  *   1. Translate so wrist (landmark 0) is at origin
- *   2. Flatten to [x0,y0, x1,y1, ..., x20,y20]
+ *   2. Flatten to [x0,y0,z0, x1,y1,z1, ..., x20,y20,z20]
  *   3. Scale so max absolute value = 1
  *
  * This makes the representation invariant to:
  *   - Camera distance (scale)
  *   - Hand position in frame (translation)
  *
- * Output: Float32Array of length 42 (21 points × x,y)
+ * Output: Float32Array of length 63 (21 points × x,y,z)
  */
 export function normalizeLandmarks(landmarks: Landmark[]): Float32Array {
   if (landmarks.length !== 21) {
@@ -25,6 +25,7 @@ export function normalizeLandmarks(landmarks: Landmark[]): Float32Array {
   const relative = landmarks.map(lm => [
     lm.x - wrist.x,
     lm.y - wrist.y,
+    (lm.z ?? 0) - (wrist.z ?? 0),
   ])
 
   const flat = relative.flat()

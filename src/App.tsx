@@ -4,6 +4,7 @@ import ConfidenceMeter from './components/ConfidenceMeter'
 import SignHistory from './components/SignHistory'
 import LanguageSelector from './components/LanguageSelector'
 import InfoSections from './components/InfoSections'
+import TextToSign from './components/TextToSign'
 import { useMediaPipe } from './hooks/useMediaPipe'
 import { useONNXInference } from './hooks/useONNXInference'
 import { useTranslation } from './hooks/useTranslation'
@@ -19,6 +20,7 @@ const MODEL_STATUS_LABELS = {
 export default function App() {
   const [language, setLanguage] = useState<SignLanguage>('ASL')
   const [isStarted, setIsStarted] = useState(false)
+  const [mode, setMode] = useState<'interpret' | 'translate'>('interpret')
 
   const videoRef  = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -111,52 +113,71 @@ export default function App() {
       {/* ── Main ────────────────────────────────────────────────────────────── */}
       <main style={{ flex: 1, padding: 'var(--space-lg) 0' }}>
         <div className="container">
-          <div className="main-layout">
 
-            {/* Left: Camera */}
-            <Camera
-              videoRef={videoRef}
-              canvasRef={canvasRef}
-              trackingStatus={trackingStatus}
-              isStarted={isStarted}
-              onStart={handleStart}
-              onStop={handleStop}
-              currentSign={prediction?.sign ?? null}
-              confidence={prediction?.confidence ?? 0}
-            />
-
-            {/* Right: Panel */}
-            <div className="right-panel">
-
-              {/* Model status */}
-              <div className="model-status-card">
-                <div className={`model-status-dot model-status-dot--${modelStatus}`} />
-                <div className="model-status-text">
-                  <strong>{MODEL_STATUS_LABELS[modelStatus]}</strong>
-                  {!isMediaPipeReady && (
-                    <span> &middot; MediaPipe loading…</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Confidence meter */}
-              <ConfidenceMeter
-                confidence={prediction?.confidence ?? 0}
-                stability={0}
-                sign={prediction?.sign ?? null}
-              />
-
-              {/* Translation history */}
-              <SignHistory
-                history={history}
-                pendingSigns={pendingSigns}
-                isTranslating={isTranslating}
-                onTranslateNow={translateNow}
-                onClear={clearHistory}
-              />
-
-            </div>
+          {/* Mode tabs */}
+          <div className="mode-tabs">
+            <button
+              className={`mode-tab${mode === 'interpret' ? ' mode-tab--active' : ''}`}
+              onClick={() => setMode('interpret')}
+            >
+              <span className="mode-tab-icon">📷</span>
+              Sign → Text
+            </button>
+            <button
+              className={`mode-tab${mode === 'translate' ? ' mode-tab--active' : ''}`}
+              onClick={() => setMode('translate')}
+            >
+              <span className="mode-tab-icon">✍️</span>
+              Text → Sign
+            </button>
           </div>
+
+          {/* Interpret mode */}
+          {mode === 'interpret' && (
+            <div className="main-layout">
+
+              <Camera
+                videoRef={videoRef}
+                canvasRef={canvasRef}
+                trackingStatus={trackingStatus}
+                isStarted={isStarted}
+                onStart={handleStart}
+                onStop={handleStop}
+                currentSign={prediction?.sign ?? null}
+                confidence={prediction?.confidence ?? 0}
+              />
+
+              <div className="right-panel">
+                <div className="model-status-card">
+                  <div className={`model-status-dot model-status-dot--${modelStatus}`} />
+                  <div className="model-status-text">
+                    <strong>{MODEL_STATUS_LABELS[modelStatus]}</strong>
+                    {!isMediaPipeReady && (
+                      <span> &middot; MediaPipe loading…</span>
+                    )}
+                  </div>
+                </div>
+
+                <ConfidenceMeter
+                  confidence={prediction?.confidence ?? 0}
+                  stability={0}
+                  sign={prediction?.sign ?? null}
+                />
+
+                <SignHistory
+                  history={history}
+                  pendingSigns={pendingSigns}
+                  isTranslating={isTranslating}
+                  onTranslateNow={translateNow}
+                  onClear={clearHistory}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Translate mode */}
+          {mode === 'translate' && <TextToSign />}
+
         </div>
       </main>
 

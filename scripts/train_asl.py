@@ -193,7 +193,7 @@ def train_and_export(data_dir, max_per_class, output_path):
         clf,
         initial_types=initial_type,
         options={id(clf): {'zipmap': False}},  # get flat float array, not dict
-        target_opset=17,  # onnxruntime-web 1.17.3 supports up to opset 18
+        target_opset=12,  # opset 12: best onnxruntime-web WASM compatibility
     )
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
@@ -202,7 +202,7 @@ def train_and_export(data_dir, max_per_class, output_path):
 
     print(f'\n{"="*60}')
     print(f'  Model saved → {output_path}')
-    print(f'  Input shape:  float32[1, 42]')
+    print(f'  Input shape:  float32[1, 63]')
     print(f'  Outputs:      output_label (int64[1])')
     print(f'                output_probability (float32[1, {len(set(y))}])')
     print(f'  Label order:  {LABEL_ORDER[:len(set(y))]}')

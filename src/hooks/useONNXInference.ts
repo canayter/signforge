@@ -156,7 +156,7 @@ export function useONNXInference({
         }
 
         const input = normalizeLandmarks(landmarks)
-        const tensor = new ort.Tensor('float32', input, [1, 42])
+        const tensor = new ort.Tensor('float32', input, [1, 63])
         const feeds: Record<string, ort.Tensor> = {}
 
         // Use the first input name from the model graph
