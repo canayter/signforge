@@ -16,6 +16,40 @@ const ASL_LABELS = [
   'SPACE','DEL','NOTHING',
 ]
 
+// ── Rule-based special sign detector (runs before ONNX) ─────────────────────
+//
+// These are signs whose geometry is reliably identifiable from raw MediaPipe
+// landmarks without a trained classifier.  Return a sign string or null.
+//
+// MediaPipe landmark index reference:
+//   0=wrist  4=thumb-tip  8=index-tip  12=middle-tip  16=ring-tip  20=pinky-tip
+//   6=index-pip  10=middle-pip  14=ring-pip  18=pinky-pip
+//   2=thumb-mcp  9=middle-mcp (palm centre proxy)
+//
+function detectSpecialSigns(lm: Landmark[]): string | null {
+  if (lm.length !== 21) return null
+
+  // ── ILY (I Love You) ────────────────────────────────────────────────────
+  //  Thumb up/out + Index up + Pinky up + Middle down + Ring down
+  //  In image coords y increases downward, so "tip above PIP" = tip.y < pip.y
+  const indexUp  = lm[8].y  < lm[6].y  - 0.02
+  const pinkyUp  = lm[20].y < lm[18].y - 0.02
+  const middleDown = lm[12].y > lm[10].y
+  const ringDown   = lm[16].y > lm[14].y
+
+  // Thumb: tip should be far from palm centre (not tucked)
+  const palmCx = lm[9].x
+  const palmCy = lm[9].y
+  const thumbDist = Math.hypot(lm[4].x - palmCx, lm[4].y - palmCy)
+  const thumbOut = thumbDist > 0.22
+
+  if (indexUp && pinkyUp && middleDown && ringDown && thumbOut) {
+    return 'ILY'
+  }
+
+  return null
+}
+
 const MODEL_PATHS: Record<SignLanguage, string | null> = {
   ASL:    '/signforge/models/asl_fingerspell.onnx',
   BSL:    null,
@@ -110,6 +144,17 @@ export function useONNXInference({
 
       inferringRef.current = true
       try {
+        // ── Special signs (rule-based, no ONNX needed) ──────────────────────
+        const special = detectSpecialSigns(landmarks)
+        if (special) {
+          const pred: Prediction = { sign: special, confidence: 0.97, isFingerSpell: false }
+          setPrediction(pred)
+          const isStable = stabilizerRef.current.feed(special)
+          if (isStable) setStabilizedSign(special)
+          inferringRef.current = false
+          return
+        }
+
         const input = normalizeLandmarks(landmarks)
         const tensor = new ort.Tensor('float32', input, [1, 42])
         const feeds: Record<string, ort.Tensor> = {}

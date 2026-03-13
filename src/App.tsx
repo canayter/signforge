@@ -3,6 +3,7 @@ import Camera from './components/Camera'
 import ConfidenceMeter from './components/ConfidenceMeter'
 import SignHistory from './components/SignHistory'
 import LanguageSelector from './components/LanguageSelector'
+import InfoSections from './components/InfoSections'
 import { useMediaPipe } from './hooks/useMediaPipe'
 import { useONNXInference } from './hooks/useONNXInference'
 import { useTranslation } from './hooks/useTranslation'
@@ -88,40 +89,12 @@ export default function App() {
 
             {/* Logo */}
             <div className="logo">
-              <svg
-                className="logo-svg"
-                viewBox="0 0 44 44"
-                width="44"
-                height="44"
-                aria-hidden="true"
-              >
-                {/* Hexagon mark */}
-                <polygon
-                  className="logo-hex"
-                  points="22,3 38,12.5 38,31.5 22,41 6,31.5 6,12.5"
-                />
-                {/* Inner pulse circle */}
-                <circle className="logo-pulse" cx="22" cy="22" r="10" />
-                {/* Hand silhouette — simplified path */}
-                <text
-                  x="22" y="29"
-                  textAnchor="middle"
-                  fontFamily="sans-serif"
-                  fontWeight="700"
-                  fontSize="16"
-                  fill="white"
-                  style={{ userSelect: 'none' }}
-                >
-                  SF
-                </text>
-              </svg>
-
-              <div className="logo-type">
-                <div className="logo-name">
-                  <span className="logo-sign">SIGN</span>
-                  <span className="logo-forge">FORGE</span>
-                </div>
-                <div className="logo-motto">YOUR HANDS SIGNIFY</div>
+              <span className="logo-emoji" aria-hidden="true">✋</span>
+              <div className="logo-textblock">
+                <span className="logo-wordmark">
+                  <span className="logo-sign">SIGN</span><span className="logo-forge">FORGE</span>
+                </span>
+                <span className="logo-tagline">Your Hands Signify</span>
               </div>
             </div>
 
@@ -186,6 +159,11 @@ export default function App() {
           </div>
         </div>
       </main>
+
+      {/* ── Info Sections ───────────────────────────────────────────────────── */}
+      <div className="container">
+        <InfoSections />
+      </div>
 
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
       <footer className="site-footer">
